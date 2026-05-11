@@ -1,0 +1,15 @@
+# 1. Crear y activar entorno virtual
+python -m venv venv
+source venv/bin/activate        # Linux/Mac
+venv\Scripts\activate           # Windows
+
+# 2. Instalar dependencias
+pip install -r requirements.txt
+
+# 3. Configurar base de datos
+cp .env.example .env            # completar credenciales
+mysql -u root -p < database/schema.sql
+
+# 4. Ejecutar
+python app.py
+# → http://localhost:5000

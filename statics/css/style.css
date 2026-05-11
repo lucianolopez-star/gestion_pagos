@@ -1,0 +1,47 @@
+/* static/css/style.css */
+
+body {
+  background-color: #f5f7fa;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+}
+
+.navbar-brand {
+  font-size: 1.25rem;
+  letter-spacing: .02em;
+}
+
+.card {
+  border: none;
+  border-radius: .75rem;
+}
+
+.card-header {
+  border-radius: .75rem .75rem 0 0 !important;
+  font-size: .95rem;
+}
+
+.table th {
+  font-size: .8rem;
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  white-space: nowrap;
+}
+
+.badge {
+  font-weight: 500;
+}
+
+/* Fila seleccionada en el formulario de evento */
+tr.table-primary td {
+  background-color: #cfe2ff !important;
+}
+
+/* Inputs dentro de la tabla de jugadores */
+.campo-monto, .campo-estado {
+  min-width: 90px;
+}
+
+/* Highlight al pasar por encima en tablas */
+.table-hover > tbody > tr:hover {
+  background-color: rgba(13, 110, 253, .05);
+}

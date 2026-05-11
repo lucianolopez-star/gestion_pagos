@@ -1,0 +1,385 @@
+{% extends "base.html" %}
+{% block title %}{{ titulo }}{% endblock %}
+
+{% block content %}
+
+<h2 class="mb-4"><i class="bi bi-calendar-event-fill me-2"></i>{{ titulo }}</h2>
+
+<form method="post" id="eventoForm">
+
+  <!-- ══════════════════════════════════════════
+       DATOS DEL EVENTO
+  ══════════════════════════════════════════ -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-success text-white fw-semibold">
+      <i class="bi bi-info-circle me-2"></i>Datos del Evento
+    </div>
+    <div class="card-body">
+      <div class="row g-3">
+        <div class="col-md-8">
+          <label class="form-label fw-semibold">Descripción <span class="text-danger">*</span></label>
+          <input type="text" name="dscEvento" class="form-control"
+                 value="{{ evento.dscEvento if evento else '' }}" required />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Fecha <span class="text-danger">*</span></label>
+          <input type="date" name="fecEvento" class="form-control"
+                 value="{{ evento.fecEvento.strftime('%Y-%m-%d') if evento and evento.fecEvento else '' }}"
+                 required />
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Estado</label>
+          <select name="estado" class="form-select">
+            {% for opt in ['Pendiente','Activo','Cerrado'] %}
+            <option value="{{ opt }}"
+              {% if evento and evento.estado == opt %}selected
+              {% elif not evento and opt == 'Pendiente' %}selected{% endif %}>
+              {{ opt }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Total del Evento ($)</label>
+          <input type="number" step="0.01" min="0" name="total" class="form-control"
+                 id="totalEvento" value="{{ evento.total if evento else '0.00' }}" />
+        </div>
+        <div class="col-12">
+          <label class="form-label fw-semibold">Observación</label>
+          <textarea name="Observacion" class="form-control"
+                    rows="2">{{ evento.Observacion if evento else '' }}</textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════
+       PANEL DOBLE: DISPONIBLES / EN EL EVENTO
+  ══════════════════════════════════════════ -->
+  <div class="card shadow-sm mb-4">
+    <div class="card-header bg-primary text-white fw-semibold">
+      <i class="bi bi-people-fill me-2"></i>Jugadores del Evento
+    </div>
+    <div class="card-body">
+
+      <!-- Toolbar -->
+      <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
+        <button type="button" class="btn btn-sm btn-outline-primary" id="btnDistribuir">
+          <i class="bi bi-calculator me-1"></i>Distribuir monto equitativamente
+        </button>
+      </div>
+
+      <div class="row g-3 align-items-stretch">
+
+        <!-- ── Izquierda: DISPONIBLES ── -->
+        <div class="col-md-5">
+          <div class="border rounded d-flex flex-column h-100">
+            <div class="bg-light border-bottom px-3 py-2 d-flex align-items-center">
+              <span class="small fw-bold text-uppercase text-muted">Disponibles</span>
+              <span class="badge bg-secondary ms-auto" id="badgeDisp">0</span>
+            </div>
+            <div class="px-2 pt-2">
+              <input type="text" id="buscarDisp" class="form-control form-control-sm"
+                     placeholder="Buscar jugador…" />
+            </div>
+            <div id="listaDisp" class="overflow-auto p-2 flex-grow-1"
+                 style="min-height:240px; max-height:360px;"></div>
+            <div class="border-top px-2 py-2">
+              <button type="button" id="btnAgregarSel"
+                      class="btn btn-sm btn-primary w-100">
+                <i class="bi bi-arrow-right me-1"></i>Agregar seleccionados
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Centro: botones dobles ── -->
+        <div class="col-md-2 d-flex flex-column justify-content-center align-items-center gap-3">
+          <button type="button" id="btnAgregarTodos"
+                  class="btn btn-sm btn-outline-success px-3" title="Agregar todos">
+            <i class="bi bi-chevron-double-right"></i>
+          </button>
+          <button type="button" id="btnQuitarTodos"
+                  class="btn btn-sm btn-outline-danger px-3" title="Quitar todos">
+            <i class="bi bi-chevron-double-left"></i>
+          </button>
+        </div>
+
+        <!-- ── Derecha: EN EL EVENTO ── -->
+        <div class="col-md-5">
+          <div class="border rounded d-flex flex-column h-100">
+            <div class="bg-light border-bottom px-3 py-2 d-flex align-items-center">
+              <span class="small fw-bold text-uppercase text-muted">En el Evento</span>
+              <span class="badge bg-success ms-auto" id="badgeEv">0</span>
+            </div>
+            <div class="px-2 pt-2">
+              <input type="text" id="buscarEv" class="form-control form-control-sm"
+                     placeholder="Buscar jugador…" />
+            </div>
+            <div id="listaEv" class="overflow-auto p-2 flex-grow-1"
+                 style="min-height:240px; max-height:360px;"></div>
+            <div class="border-top px-2 py-2">
+              <button type="button" id="btnQuitarSel"
+                      class="btn btn-sm btn-outline-danger w-100">
+                <i class="bi bi-arrow-left me-1"></i>Quitar seleccionados
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /row paneles -->
+
+      <!-- ── Tabla de montos ── -->
+      <div class="mt-4">
+        <h6 class="fw-semibold text-muted text-uppercase small mb-2">
+          <i class="bi bi-currency-dollar me-1"></i>Montos y estado de pago
+        </h6>
+        <p id="sinJugadoresMsg" class="text-muted small">
+          Todavía no agregaste jugadores al evento.
+        </p>
+        <div class="table-responsive">
+          <table class="table table-sm table-bordered align-middle mb-0" id="tablaMontos">
+            <thead class="table-light">
+              <tr>
+                <th>Jugador</th>
+                <th width="170">Monto ($)</th>
+                <th width="160">Estado</th>
+                <th width="50" class="text-center">Quitar</th>
+              </tr>
+            </thead>
+            <tbody id="bodyMontos"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /card-body -->
+  </div>
+
+  <!-- Campos hidden inyectados por JS antes del submit -->
+  <div id="hiddenFields"></div>
+
+  <div class="d-flex gap-2">
+    <button type="submit" class="btn btn-success px-4">
+      <i class="bi bi-save me-1"></i>Guardar Evento
+    </button>
+    <a href="{{ url_for('eventos.list') }}" class="btn btn-secondary">
+      <i class="bi bi-x-lg me-1"></i>Cancelar
+    </a>
+  </div>
+
+</form>
+{% endblock %}
+
+
+{% block scripts %}
+<!-- Datos Jinja → JS -->
+<script>
+const TODOS_JUGADORES = [
+  {% for j in todos_jugadores %}
+  { id: {{ j.idJugador }}, nombre: {{ j.ApellidoNombre | tojson }}, alias: {{ (j.Alias or '') | tojson }} }
+  {% if not loop.last %},{% endif %}
+  {% endfor %}
+];
+
+const INSCRIPTOS = [
+  {% for ej in jugadores_evento %}
+  { id: {{ ej.idJugador }}, monto: {{ ej.monto }}, estado: {{ ej.estado | tojson }} }
+  {% if not loop.last %},{% endif %}
+  {% endfor %}
+];
+</script>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+
+  /* ── Estado central ─────────────────────────────────────────
+     eventoSet: Map<id, {id, nombre, alias, monto, estado}>
+  ─────────────────────────────────────────────────────────── */
+  const eventoSet = new Map();
+
+  INSCRIPTOS.forEach(i => {
+    const j = TODOS_JUGADORES.find(x => x.id === i.id);
+    if (j) eventoSet.set(i.id, { ...j, monto: i.monto, estado: i.estado });
+  });
+
+  /* ── Nodos del DOM ── */
+  const listaDisp  = document.getElementById("listaDisp");
+  const listaEv    = document.getElementById("listaEv");
+  const bodyMontos = document.getElementById("bodyMontos");
+  const sinMsg     = document.getElementById("sinJugadoresMsg");
+  const tablaMontos = document.getElementById("tablaMontos");
+  const badgeDisp  = document.getElementById("badgeDisp");
+  const badgeEv    = document.getElementById("badgeEv");
+  const totalInput = document.getElementById("totalEvento");
+
+  /* ── Builders ── */
+  function buildPanelItem(j, isEv) {
+    const cls = isEv ? "chk-ev" : "chk-disp";
+    const div = document.createElement("div");
+    div.className = "panel-item d-flex align-items-center gap-2 rounded px-2 py-1 mb-1";
+    div.dataset.id = j.id;
+    div.innerHTML = `
+      <input type="checkbox" class="form-check-input ${cls} flex-shrink-0" data-id="${j.id}" />
+      <span class="flex-grow-1">
+        <strong>${j.nombre}</strong>
+        ${j.alias ? `<span class="badge bg-secondary ms-1" style="font-size:.7rem">${j.alias}</span>` : ''}
+      </span>`;
+    div.addEventListener("click", e => {
+      if (e.target.type === "checkbox") return;
+      const chk = div.querySelector("input[type=checkbox]");
+      chk.checked = !chk.checked;
+      div.classList.toggle("selected", chk.checked);
+    });
+    div.querySelector("input").addEventListener("change", function() {
+      div.classList.toggle("selected", this.checked);
+    });
+    return div;
+  }
+
+  function buildFilaMonto(j) {
+    const tr = document.createElement("tr");
+    tr.dataset.id = j.id;
+    tr.innerHTML = `
+      <td><strong>${j.nombre}</strong>
+          ${j.alias ? `<span class="badge bg-secondary ms-1" style="font-size:.7rem">${j.alias}</span>` : ''}</td>
+      <td><input type="number" step="0.01" min="0"
+                 class="form-control form-control-sm campo-monto" data-id="${j.id}"
+                 value="${parseFloat(j.monto||0).toFixed(2)}" /></td>
+      <td><select class="form-select form-select-sm campo-estado" data-id="${j.id}">
+            ${['Pendiente','Pagado','Eximido'].map(o =>
+              `<option value="${o}" ${j.estado===o?'selected':''}>${o}</option>`
+            ).join('')}
+          </select></td>
+      <td class="text-center">
+        <button type="button" class="btn btn-sm btn-outline-danger btn-quitar" title="Quitar">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </td>`;
+    tr.querySelector(".btn-quitar").addEventListener("click", () => {
+      eventoSet.delete(j.id);
+      render();
+    });
+    return tr;
+  }
+
+  /* ── Render principal ── */
+  function render() {
+    const filtroD = document.getElementById("buscarDisp").value.toLowerCase();
+    const filtroE = document.getElementById("buscarEv").value.toLowerCase();
+
+    listaDisp.innerHTML = "";
+    listaEv.innerHTML   = "";
+    bodyMontos.innerHTML = "";
+
+    let cntD = 0, cntE = 0;
+
+    TODOS_JUGADORES.forEach(j => {
+      const enEv  = eventoSet.has(j.id);
+      const texto = (j.nombre + " " + j.alias).toLowerCase();
+
+      if (!enEv && texto.includes(filtroD)) {
+        listaDisp.appendChild(buildPanelItem(j, false));
+        cntD++;
+      }
+      if (enEv && texto.includes(filtroE)) {
+        listaEv.appendChild(buildPanelItem(eventoSet.get(j.id), true));
+        bodyMontos.appendChild(buildFilaMonto(eventoSet.get(j.id)));
+        cntE++;
+      }
+    });
+
+    badgeDisp.textContent  = cntD;
+    badgeEv.textContent    = cntE;
+    sinMsg.style.display   = cntE === 0 ? "" : "none";
+    tablaMontos.style.display = cntE === 0 ? "none" : "";
+  }
+
+  /* ── Agregar / quitar ── */
+  function syncMapDesdeTabla() {
+    bodyMontos.querySelectorAll("tr[data-id]").forEach(tr => {
+      const id = parseInt(tr.dataset.id);
+      if (eventoSet.has(id)) {
+        eventoSet.get(id).monto  = parseFloat(tr.querySelector(".campo-monto").value) || 0;
+        eventoSet.get(id).estado = tr.querySelector(".campo-estado").value;
+      }
+    });
+  }
+
+  function agregar(j) {
+    if (!eventoSet.has(j.id))
+      eventoSet.set(j.id, { ...j, monto: 0, estado: "Pendiente" });
+  }
+
+  document.getElementById("btnAgregarSel").addEventListener("click", () => {
+    syncMapDesdeTabla();
+    listaDisp.querySelectorAll(".chk-disp:checked").forEach(chk => {
+      const j = TODOS_JUGADORES.find(x => x.id == chk.dataset.id);
+      if (j) agregar(j);
+    });
+    render();
+  });
+
+  document.getElementById("btnQuitarSel").addEventListener("click", () => {
+    syncMapDesdeTabla();
+    listaEv.querySelectorAll(".chk-ev:checked").forEach(chk => {
+      eventoSet.delete(parseInt(chk.dataset.id));
+    });
+    render();
+  });
+
+  document.getElementById("btnAgregarTodos").addEventListener("click", () => {
+    syncMapDesdeTabla();
+    TODOS_JUGADORES.forEach(j => agregar(j));
+    render();
+  });
+
+  document.getElementById("btnQuitarTodos").addEventListener("click", () => {
+    eventoSet.clear();
+    render();
+  });
+
+  /* ── Distribución equitativa ── */
+  document.getElementById("btnDistribuir").addEventListener("click", () => {
+    if (!eventoSet.size) return;
+    syncMapDesdeTabla();
+    const total = parseFloat(totalInput.value) || 0;
+    const cuota = parseFloat((total / eventoSet.size).toFixed(2));
+    eventoSet.forEach(v => { v.monto = cuota; });
+    render();
+  });
+
+  /* ── Filtros ── */
+  document.getElementById("buscarDisp").addEventListener("input", render);
+  document.getElementById("buscarEv").addEventListener("input", render);
+
+  /* ── Submit: inyectar campos hidden ── */
+  document.getElementById("eventoForm").addEventListener("submit", () => {
+    syncMapDesdeTabla();
+    const cont = document.getElementById("hiddenFields");
+    cont.innerHTML = "";
+    eventoSet.forEach((j, id) => {
+      [[`jugador_ids`, id], [`monto_${id}`, j.monto], [`estado_${id}`, j.estado]]
+        .forEach(([name, val]) => {
+          const inp = document.createElement("input");
+          inp.type = "hidden"; inp.name = name; inp.value = val;
+          cont.appendChild(inp);
+        });
+    });
+  });
+
+  /* ── Render inicial ── */
+  render();
+});
+</script>
+
+<style>
+.panel-item {
+  cursor: pointer;
+  transition: background .12s;
+  user-select: none;
+  border: 1px solid transparent;
+}
+.panel-item:hover    { background: #f0f4ff; }
+.panel-item.selected { background: #cfe2ff; border-color: #9ec5fe; }
+</style>
+{% endblock %}
