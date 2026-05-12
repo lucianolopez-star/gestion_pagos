@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}{{ evento.dscEvento }}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+  <h2><i class="bi bi-calendar-event-fill me-2"></i>{{ evento.dscEvento }}</h2>
+  <div class="d-flex gap-2">
+    {% if puede_modificar %}
+    <a href="{{ url_for('eventos.edit', id_evento=evento.idEvento) }}" class="btn btn-warning">
+      <i class="bi bi-pencil me-1"></i>Editar
+    </a>
+    <form action="{{ url_for('eventos.duplicate', id_evento=evento.idEvento) }}"
+          method="post" class="d-inline"
+          onsubmit="return confirm('¿Duplicar este evento?')">
+      <button type="submit" class="btn btn-outline-secondary">
+        <i class="bi bi-copy me-1"></i>Duplicar
+      </button>
+    </form>
+    {% endif %}
+    <a href="{{ url_for('eventos.list') }}" class="btn btn-secondary">
+      <i class="bi bi-arrow-left me-1"></i>Volver
+    </a>
+  </div>
+</div>
+
+<!-- Resumen -->
+<div class="row g-3 mb-4">
+  <div class="col-md-3">
+    <div class="card text-center border-0 bg-light">
+      <div class="card-body">
+        <div class="small text-muted">Fecha</div>
+        <div class="fw-bold fs-5">{{ evento.fecEvento.strftime('%d/%m/%Y') }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="card text-center border-0 bg-light">
+      <div class="card-body">
+        <div class="small text-muted">Estado</div>
+        {% if evento.estado == 'Activo' %}<span class="badge bg-success fs-6">Activo</span>
+        {% elif evento.estado == 'Cerrado' %}<span class="badge bg-secondary fs-6">Cerrado</span>
+        {% else %}<span class="badge bg-warning text-dark fs-6">Pendiente</span>{% endif %}
+      </div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="card text-center border-0 bg-light">
+      <div class="card-body">
+        <div class="small text-muted">Total</div>
+        <div class="fw-bold fs-5 text-success">${{ "%.2f"|format(evento.total) }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="card text-center border-0 bg-light">
+      <div class="card-body">
+        <div class="small text-muted">Creado por</div>
+        <div class="fw-semibold">{{ evento.creador or '—' }}</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-2">
+    <div class="card text-center border-0 bg-light">
+      <div class="card-body">
+        <div class="small text-muted">Observación</div>
+        <div class="small">{{ evento.Observacion or '—' }}</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tabla jugadores -->
+<div class="card shadow-sm">
+  <div class="card-header fw-semibold">
+    <i class="bi bi-people-fill me-2"></i>Jugadores inscriptos
+  </div>
+  <div class="card-body p-0">
+    <table class="table table-hover mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Jugador</th>
+          <th>Alias</th>
+          <th class="text-end">Monto</th>
+          <th class="text-center">Estado Pago</th>
+          {% if puede_modificar %}
+          <th class="text-center">Cambiar estado</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% set total_recaudado = namespace(val=0) %}
+        {% for j in jugadores %}
+          {% if j.estado == 'Pagado' %}{% set total_recaudado.val = total_recaudado.val + j.monto %}{% endif %}
+          <tr>
+            <td>
+              <a href="{{ url_for('jugadores.detail', id_jugador=j.idJugador) }}">
+                <strong>{{ j.ApellidoNombre }}</strong>
+              </a>
+            </td>
+            <td><span class="badge bg-secondary">{{ j.Alias or '—' }}</span></td>
+            <td class="text-end">${{ "%.2f"|format(j.monto) }}</td>
+            <td class="text-center">
+              {% if j.estado == 'Pagado' %}
+                <span class="badge bg-success">Pagado</span>
+              {% elif j.estado == 'Eximido' %}
+                <span class="badge bg-info text-dark">Eximido</span>
+              {% else %}
+                <span class="badge bg-warning text-dark">Pendiente</span>
+              {% endif %}
+            </td>
+            {% if puede_modificar %}
+            <td class="text-center">
+              <form action="{{ url_for('eventos.update_pago', id_evento=evento.idEvento) }}"
+                    method="post" class="d-flex gap-1 justify-content-center">
+                <input type="hidden" name="idJugador" value="{{ j.idJugador }}" />
+                <select name="estadoPago" class="form-select form-select-sm" style="width:130px">
+                  {% for opt in ['Pendiente','Pagado','Eximido'] %}
+                  <option value="{{ opt }}" {% if j.estado == opt %}selected{% endif %}>{{ opt }}</option>
+                  {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-sm btn-primary">
+                  <i class="bi bi-check-lg"></i>
+                </button>
+              </form>
+            </td>
+            {% endif %}
+          </tr>
+        {% else %}
+          <tr>
+            <td colspan="{{ 5 if puede_modificar else 4 }}"
+                class="text-center text-muted py-3">Sin jugadores inscriptos.</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+      {% if jugadores %}
+      <tfoot class="table-light fw-bold">
+        <tr>
+          <td colspan="2">Recaudado</td>
+          <td class="text-end text-success">${{ "%.2f"|format(total_recaudado.val) }}</td>
+          <td colspan="{{ 2 if puede_modificar else 1 }}"></td>
+        </tr>
+      </tfoot>
+      {% endif %}
+    </table>
+  </div>
+</div>
+{% endblock %}

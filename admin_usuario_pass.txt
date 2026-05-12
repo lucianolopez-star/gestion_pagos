@@ -1,0 +1,9 @@
+python crear_admin.py
+# → email: admin@sistema.com  /  contraseña: Admin1234
+
+delegadomariscal@sistema.com
+
+tanque
+
+1@1	
+123456

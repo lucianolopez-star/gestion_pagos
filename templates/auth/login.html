@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Iniciar Sesión{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-5">
+  <div class="col-sm-10 col-md-6 col-lg-4">
+    <div class="card shadow">
+      <div class="card-body p-4">
+        <div class="text-center mb-4">
+          <i class="bi bi-trophy-fill text-primary" style="font-size:2.5rem"></i>
+          <h4 class="mt-2 fw-bold">Gestión de Pagos</h4>
+          <p class="text-muted small">Ingresá tus credenciales para continuar</p>
+        </div>
+        <form method="post">
+          <div class="mb-3">
+            <label class="form-label fw-semibold">Email</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-envelope"></i></span>
+              <input type="email" name="email" class="form-control"
+                     placeholder="usuario@ejemplo.com"
+                     value="{{ request.form.get('email','') }}"
+                     autofocus required />
+            </div>
+          </div>
+          <div class="mb-4">
+            <label class="form-label fw-semibold">Contraseña</label>
+            <div class="input-group">
+              <span class="input-group-text"><i class="bi bi-lock"></i></span>
+              <input type="password" name="password" id="inputPassword"
+                     class="form-control" placeholder="••••••••" required />
+              <button type="button" class="btn btn-outline-secondary" id="btnVerPass"
+                      tabindex="-1">
+                <i class="bi bi-eye"></i>
+              </button>
+            </div>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-box-arrow-in-right me-2"></i>Ingresar
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.getElementById("btnVerPass").addEventListener("click", function () {
+  const inp = document.getElementById("inputPassword");
+  const ico = this.querySelector("i");
+  if (inp.type === "password") {
+    inp.type = "text";
+    ico.className = "bi bi-eye-slash";
+  } else {
+    inp.type = "password";
+    ico.className = "bi bi-eye";
+  }
+});
+</script>
+{% endblock %}

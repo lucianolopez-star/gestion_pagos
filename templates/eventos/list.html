@@ -4,9 +4,11 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h2><i class="bi bi-calendar-event-fill me-2"></i>Eventos</h2>
+  {% if session.usuario_rol in ('administrador','delegado') %}
   <a href="{{ url_for('eventos.create') }}" class="btn btn-success">
     <i class="bi bi-plus-lg me-1"></i>Nuevo Evento
   </a>
+  {% endif %}
 </div>
 
 <div class="card shadow-sm">
@@ -18,6 +20,7 @@
           <th>Descripción</th>
           <th>Fecha</th>
           <th>Estado</th>
+          <th>Creado por</th>
           <th class="text-end">Total</th>
           <th class="text-center">Jugadores</th>
           <th class="text-center">Pagados</th>
@@ -40,6 +43,7 @@
               <span class="badge bg-warning text-dark">Pendiente</span>
             {% endif %}
           </td>
+          <td class="small text-muted">{{ e.creador or '—' }}</td>
           <td class="text-end">${{ "%.2f"|format(e.total) }}</td>
           <td class="text-center">{{ e.cant_jugadores or 0 }}</td>
           <td class="text-center"><span class="text-success fw-bold">{{ e.pagados or 0 }}</span></td>
@@ -49,28 +53,30 @@
                class="btn btn-sm btn-outline-info" title="Ver">
               <i class="bi bi-eye"></i>
             </a>
+            {% if puede_modificar(e) %}
             <a href="{{ url_for('eventos.edit', id_evento=e.idEvento) }}"
                class="btn btn-sm btn-outline-warning" title="Editar">
               <i class="bi bi-pencil"></i>
             </a>
             <form action="{{ url_for('eventos.duplicate', id_evento=e.idEvento) }}"
                   method="post" class="d-inline"
-                  onsubmit="return confirm('¿Duplicar el evento «' + '{{ e.dscEvento }}' + '»?\nSe creará una copia en estado Pendiente con los mismos jugadores.')">
+                  onsubmit="return confirm('¿Duplicar «{{ e.dscEvento }}»?')">
               <button type="submit" class="btn btn-sm btn-outline-secondary" title="Duplicar">
                 <i class="bi bi-copy"></i>
               </button>
             </form>
             <form action="{{ url_for('eventos.delete', id_evento=e.idEvento) }}"
                   method="post" class="d-inline"
-                  onsubmit="return confirm('¿Eliminar evento {{ e.dscEvento }}?')">
+                  onsubmit="return confirm('¿Eliminar «{{ e.dscEvento }}»?')">
               <button type="submit" class="btn btn-sm btn-outline-danger" title="Eliminar">
                 <i class="bi bi-trash"></i>
               </button>
             </form>
+            {% endif %}
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="9" class="text-center text-muted py-4">No hay eventos registrados.</td></tr>
+        <tr><td colspan="10" class="text-center text-muted py-4">No hay eventos registrados.</td></tr>
         {% endfor %}
       </tbody>
     </table>

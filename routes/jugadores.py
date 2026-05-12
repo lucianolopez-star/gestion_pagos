@@ -1,16 +1,19 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from models import jugador as JugadorModel
+from routes.decorators import login_required, roles_required
 
 jugadores_bp = Blueprint("jugadores", __name__)
 
 
 @jugadores_bp.route("/")
+@login_required
 def list():
     jugadores = JugadorModel.get_all()
     return render_template("jugadores/list.html", jugadores=jugadores)
 
 
 @jugadores_bp.route("/nuevo", methods=["GET", "POST"])
+@roles_required("administrador", "delegado")
 def create():
     if request.method == "POST":
         try:
@@ -25,11 +28,11 @@ def create():
             return redirect(url_for("jugadores.list"))
         except Exception as e:
             flash(f"Error al crear jugador: {e}", "danger")
-
     return render_template("jugadores/form.html", jugador=None, titulo="Nuevo Jugador")
 
 
 @jugadores_bp.route("/<int:id_jugador>/editar", methods=["GET", "POST"])
+@roles_required("administrador", "delegado")
 def edit(id_jugador):
     jugador = JugadorModel.get_by_id(id_jugador)
     if not jugador:
@@ -55,6 +58,7 @@ def edit(id_jugador):
 
 
 @jugadores_bp.route("/<int:id_jugador>")
+@login_required
 def detail(id_jugador):
     jugador = JugadorModel.get_by_id(id_jugador)
     if not jugador:
@@ -65,6 +69,7 @@ def detail(id_jugador):
 
 
 @jugadores_bp.route("/<int:id_jugador>/eliminar", methods=["POST"])
+@roles_required("administrador")
 def delete(id_jugador):
     try:
         JugadorModel.delete(id_jugador)
